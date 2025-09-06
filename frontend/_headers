@@ -1,0 +1,2 @@
+/*
+  Content-Security-Policy: script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://agromax-00pa.onrender.com;

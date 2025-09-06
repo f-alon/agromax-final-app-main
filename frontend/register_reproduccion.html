@@ -1,0 +1,127 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroMax - Registrar Reproducción</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-gray-100">
+
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                         <h1 class="text-2xl font-extrabold text-gray-900">
+                            <span class="text-green-700">Agro</span>Max
+                        </h1>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="#" data-navigate="dashboard.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Dashboard</a>
+                        <a href="#" data-navigate="animales.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Animales</a>
+                        <a href="#" data-navigate="rodeos.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Rodeos</a>
+                        <a href="#" data-navigate="reportes.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Reportes</a>
+                    </div>
+                </div>
+                <div class="hidden sm:ml-6 sm:flex sm:items-center">
+                    <button id="logoutBtn" class="ml-4 text-sm font-medium text-gray-500 hover:text-gray-700">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="py-10">
+        <header class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 class="text-3xl font-bold leading-tight text-gray-900">
+                Registrar Reproducción para <span id="animalNameHeader"></span>
+            </h1>
+        </header>
+        <main>
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="px-4 py-8 sm:px-0">
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <form id="registerReproduccionForm">
+                            <input type="hidden" id="vacaIdInput" name="vaca_id">
+                            <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                                <div class="sm:col-span-3">
+                                    <label for="fecha_evento" class="block text-sm font-medium text-gray-700">Fecha del Evento</label>
+                                    <div class="mt-1">
+                                        <input type="date" name="fecha_evento" id="fecha_evento" required
+                                            class="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                                    </div>
+                                </div>
+                                <div class="sm:col-span-3 flex items-center pt-6">
+                                    <input id="fecha_es_aproximada" name="fecha_es_aproximada" type="checkbox"
+                                        class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                                    <label for="fecha_es_aproximada" class="ml-2 block text-sm text-gray-900">
+                                        Fecha es aproximada
+                                    </label>
+                                </div>
+                                <div class="sm:col-span-6">
+                                    <label for="tipo_evento" class="block text-sm font-medium text-gray-700">Tipo de Evento</label>
+                                    <div class="mt-1">
+                                        <select id="tipo_evento" name="tipo_evento" required
+                                            class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                                            <option value="">Seleccione un tipo</option>
+                                            <option value="Inseminación Artificial">Inseminación Artificial</option>
+                                            <option value="Monta Natural">Monta Natural</option>
+                                            <option value="Palpación">Palpación (Diagnóstico de Preñez)</option>
+                                            <option value="Parto">Parto</option>
+                                            <option value="Aborto">Aborto</option>
+                                            <option value="Tratamiento Reproductivo">Tratamiento Reproductivo</option>
+                                            <option value="Servicio">Servicio</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="sm:col-span-6">
+                                    <label for="detalle" class="block text-sm font-medium text-gray-700">Detalle/Observaciones (opcional)</label>
+                                    <div class="mt-1">
+                                        <textarea id="detalle" name="detalle" rows="3"
+                                            class="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"></textarea>
+                                    </div>
+                                </div>
+                                <div class="sm:col-span-3">
+                                    <label for="inseminador" class="block text-sm font-medium text-gray-700">Nombre del Inseminador (opcional)</label>
+                                    <div class="mt-1">
+                                        <input type="text" name="inseminador" id="inseminador" autocomplete="off"
+                                            class="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                                    </div>
+                                </div>
+                                <div class="sm:col-span-3">
+                                    <label for="cría_id_oficial" class="block text-sm font-medium text-gray-700">ID Oficial de la Cría (en caso de Parto)</label>
+                                    <div class="mt-1">
+                                        <input type="text" name="cría_id_oficial" id="cría_id_oficial" autocomplete="off"
+                                            class="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="pt-5">
+                                <div class="flex justify-end">
+                                    <button type="button" id="cancelBtn"
+                                        class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                        Cancelar
+                                    </button>
+                                    <button type="submit" id="submitReproduccionBtn"
+                                        class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-500">
+                                        Guardar Registro
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="message" class="mt-4 text-center text-sm"></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/common.js"></script>
+    <script src="js/register_reproduccion.js"></script>
+</body>
+</html>
+
