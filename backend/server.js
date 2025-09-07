@@ -170,5 +170,5 @@ app.use((err, req, res, next) => {
 // ===== Start =====
 // aca abajo iria la url de el servidor en este caso está en local host
 app.listen(PORT, () => {
-    console.log("Servidor corriendo en http://localhost" + PORT); 
+  console.log("Servidor corriendo en http://localhost:" + PORT);
 });

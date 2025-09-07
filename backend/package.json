@@ -11,11 +11,7 @@
     "dev": "nodemon server.js",
     "migrate": "node scripts/migrate.js",
     "create-admin": "node scripts/create_admin.js",
-    "setup": "node scripts/setup.js",
-    "tw:build": "tailwindcss -i ./src/input.css -o ./assets/tailwind.css --watch",
-    "tw:build:once": "tailwindcss -i ./src/input.css -o ./assets/tailwind.css"
-     
-    }
+    "setup": "node scripts/setup.js"
   },
   "keywords": [
     "agromax",
