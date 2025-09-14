@@ -124,6 +124,9 @@ app.use(
   })
 );
 
+// Servir assets del backend (scripts compartidos, etc.) bajo /assets
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
 // ===== API de ejemplo =====
 app.get("/api/health", (req, res) => {
   res.json({
