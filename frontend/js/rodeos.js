@@ -14,7 +14,7 @@ async function generateRodeoPDF(rodeoId, rodeoNombre, animales) {
     let y = 20;
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text('AGROMEX', 105, y, { align: 'center' });
+    doc.text('AGROMAX', 105, y, { align: 'center' });
     y += 8;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');

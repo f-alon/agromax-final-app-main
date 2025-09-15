@@ -107,7 +107,7 @@ async function generatePDF() {
     let y = 20;
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text('AGROMEX', 105, y, { align: 'center' });
+    doc.text('AGROMAX', 105, y, { align: 'center' });
     y += 8;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
@@ -241,7 +241,7 @@ async function generatePDF() {
         doc.text(`Página ${i} de ${pageCount}`, 190, 285, { align: 'right' });
     }
 
-    doc.save(`Ficha_AGROMEX_${vaca.caravana_interna}.pdf`);
+    doc.save(`Ficha_AGROMAX_${vaca.caravana_interna}.pdf`);
 }
 
 document.addEventListener('DOMContentLoaded', function() {

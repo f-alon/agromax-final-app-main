@@ -1,7 +1,8 @@
 // Common JavaScript functionality for all pages
 
 // API Configuration
-const API_BASE_URL = 'https://agromax-00pa.onrender.com/';
+// Prefer same-origin API; fallback to configured URL if needed.
+const API_BASE_URL = window.API_BASE_URL || '';
 
 // Common utility functions
 function getAuthToken() {
@@ -16,8 +17,16 @@ function getUserData() {
 function checkAuth() {
     const token = getAuthToken();
     if (!token) {
-        // Use parent.postMessage for navigation in Canvas environment
-        parent.postMessage({ type: 'navigate', url: 'login.html' }, '*');
+        // Navigate using parent.postMessage if embedded, otherwise use location
+        try {
+            if (window.parent && window.parent !== window && typeof window.parent.postMessage === 'function') {
+                window.parent.postMessage({ type: 'navigate', url: 'login.html' }, '*');
+            } else {
+                window.location.assign('login.html');
+            }
+        } catch (_) {
+            window.location.assign('login.html');
+        }
         return false;
     }
     return true;
@@ -25,16 +34,27 @@ function checkAuth() {
 
 function logout() {
     localStorage.clear();
-    parent.postMessage({ type: 'navigate', url: 'login.html' }, '*');
+    try {
+        if (window.parent && window.parent !== window && typeof window.parent.postMessage === 'function') {
+            window.parent.postMessage({ type: 'navigate', url: 'login.html' }, '*');
+        } else {
+            window.location.assign('login.html');
+        }
+    } catch (_) {
+        window.location.assign('login.html');
+    }
 }
 
 async function fetchData(endpoint, options = {}) {
     try {
-        // Wake up the server first (important for free plans)
-        await fetch(API_BASE_URL);
+        // Wake up remote server if a full base URL is defined
+        if (API_BASE_URL && /^https?:\/\//i.test(API_BASE_URL)) {
+            try { await fetch(API_BASE_URL, { method: 'GET' }); } catch (_) {}
+        }
         
         const token = getAuthToken();
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        const base = API_BASE_URL || '';
+        const response = await fetch(`${base}${endpoint}`, {
             ...options,
             headers: { 
                 'Authorization': `Bearer ${token}`, 
@@ -57,7 +77,15 @@ async function fetchData(endpoint, options = {}) {
 
 // Navigation helper function
 function navigateTo(url) {
-    parent.postMessage({ type: 'navigate', url: url }, '*');
+    try {
+        if (window.parent && window.parent !== window && typeof window.parent.postMessage === 'function') {
+            window.parent.postMessage({ type: 'navigate', url: url }, '*');
+        } else {
+            window.location.assign(url);
+        }
+    } catch (_) {
+        window.location.assign(url);
+    }
 }
 
 // Add event listeners for navigation links
