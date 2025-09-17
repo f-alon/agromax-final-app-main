@@ -297,4 +297,78 @@ router.get('/stats', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// Alias in English for compatibility
+router.get('/establishments', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const establishments = await runQuery(`
+      SELECT 
+        e.id,
+        e.name,
+        e.address,
+        e.phone,
+        e.email AS establishment_email,
+        e.owner_id,
+        u.email AS owner_email,
+        e.is_active,
+        e.created_at
+      FROM establishments e
+      LEFT JOIN users u ON e.owner_id = u.id
+      ORDER BY e.created_at DESC
+    `);
+
+    res.json(establishments.map(e => ({
+      id: e.id,
+      name: e.name,
+      address: e.address || null,
+      phone: e.phone || null,
+      email: e.establishment_email || null,
+      ownerId: e.owner_id || null,
+      ownerEmail: e.owner_email || null,
+      isActive: e.is_active,
+      createdAt: e.created_at
+    })));
+  } catch (error) {
+    console.error('Get establishments (en) error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;
+// List establishments (admin only)
+router.get('/establecimientos', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const establishments = await runQuery(`
+      SELECT 
+        e.id,
+        e.name,
+        e.address,
+        e.phone,
+        e.email AS establishment_email,
+        e.owner_id,
+        u.email AS owner_email,
+        e.is_active,
+        e.created_at
+      FROM establishments e
+      LEFT JOIN users u ON e.owner_id = u.id
+      ORDER BY e.created_at DESC
+    `);
+
+    // Adapt to frontend expected keys
+    const result = establishments.map(e => ({
+      id: e.id,
+      nombre: e.name,
+      numero_oficial: null, // Not present in schema; placeholder
+      propietario_email: e.owner_email || null,
+      direccion: e.address || null,
+      telefono: e.phone || null,
+      email: e.establishment_email || null,
+      is_active: e.is_active,
+      created_at: e.created_at
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error('Get establishments error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});

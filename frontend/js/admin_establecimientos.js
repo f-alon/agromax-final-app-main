@@ -41,6 +41,37 @@ function renderEstablecimientos(establecimientos) {
     });
 }
 
+async function fetchEstablecimientosCompat() {
+    // Try Spanish endpoint first, then English alias, normalize fields
+    const normalize = (arr) => {
+        if (!arr) return [];
+        // If object wrapper present { establishments: [...] } or similar
+        const list = Array.isArray(arr) ? arr : (arr.establishments || arr.data || []);
+        return list.map(e => ({
+            id: e.id,
+            nombre: e.nombre || e.name,
+            numero_oficial: e.numero_oficial || e.official_number || e.number || null,
+            propietario_email: e.propietario_email || e.owner_email || e.ownerEmail || null,
+            direccion: e.direccion || e.address || null,
+            telefono: e.telefono || e.phone || null,
+            email: e.email || e.establishment_email || null,
+            is_active: e.is_active !== undefined ? e.is_active : (e.isActive !== undefined ? e.isActive : null),
+            created_at: e.created_at || e.createdAt || null,
+        }));
+    };
+
+    try {
+        const res = await fetchData(`/api/admin/establecimientos`);
+        return normalize(res);
+    } catch (err) {
+        if (err && err.status === 404) {
+            const res2 = await fetchData(`/api/admin/establishments`);
+            return normalize(res2);
+        }
+        throw err;
+    }
+}
+
 async function loadPageData() {
     if (!checkAuthAndAdmin()) { return; }
     
@@ -49,7 +80,7 @@ async function loadPageData() {
     statusMessage.style.display = 'block';
     
     try {
-        const establecimientos = await fetchData(`/api/admin/establecimientos`);
+        const establecimientos = await fetchEstablecimientosCompat();
         renderEstablecimientos(establecimientos);
     } catch (error) {
         console.error('Error al cargar establecimientos:', error);

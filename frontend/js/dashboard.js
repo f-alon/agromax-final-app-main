@@ -35,19 +35,7 @@ async function loadDashboardStats() {
 // Load production summary
 async function loadProductionSummary() {
     try {
-        const token = getAuthToken();
-        const response = await fetch(`${API_BASE_URL}api/dashboard/production-summary?days=30`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to load production summary');
-        }
-
-        const data = await response.json();
+        const data = await fetchData(`/api/dashboard/production-summary?days=30`);
         
         // Update production summary
         document.getElementById('avgDailyLiters').textContent = `${data.summary.avgDailyLiters.toFixed(1)} L`;
@@ -95,19 +83,7 @@ function createProductionChart(productionData) {
 // Load alerts
 async function loadAlerts() {
     try {
-        const token = getAuthToken();
-        const response = await fetch(`${API_BASE_URL}api/dashboard/alerts?limit=5`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to load alerts');
-        }
-
-        const data = await response.json();
+        const data = await fetchData(`/api/dashboard/alerts?limit=5`);
         renderAlerts(data.alerts);
         
     } catch (error) {
@@ -152,19 +128,7 @@ function getAlertColor(type) {
 // Load activity log
 async function loadActivityLog() {
     try {
-        const token = getAuthToken();
-        const response = await fetch(`${API_BASE_URL}api/dashboard/stats`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to load activity log');
-        }
-
-        const data = await response.json();
+        const data = await fetchData(`/api/dashboard/stats`);
         renderActivityLog(data.activity);
         
     } catch (error) {
@@ -203,19 +167,7 @@ async function performQuickSearch(query) {
     }
     
     try {
-        const token = getAuthToken();
-        const response = await fetch(`${API_BASE_URL}api/dashboard/search?q=${encodeURIComponent(query)}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to search animals');
-        }
-
-        const data = await response.json();
+        const data = await fetchData(`/api/dashboard/search?q=${encodeURIComponent(query)}`);
         showSearchResults(data.animals);
         
     } catch (error) {
