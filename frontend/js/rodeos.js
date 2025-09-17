@@ -1,15 +1,26 @@
 // JavaScript for rodeos.html
 
 const token = getAuthToken();
-const establecimientoId = 1; // We'll use ID 1 as an example
+const establecimientoId = 1; // Not required by API; kept for compatibility
 
-async function generateRodeoPDF(rodeoId, rodeoNombre, animales) {
+async function generateRodeoPDF(rodeoId, rodeoNombre) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    
-    const bodyData = animales
-        .filter(v => v.rodeo_id === rodeoId)
-        .map(v => [v.caravana_senasa || '', v.caravana_interna, v.nombre || '', '']);
+
+    // Fetch animals for this rodeo
+    let bodyData = [];
+    try {
+        const data = await fetchData(`/api/rodeos/${rodeoId}`);
+        const animals = (data && data.animals) || [];
+        bodyData = animals.map(v => [
+            v.senasa_caravan || '',
+            v.internal_caravan || '',
+            v.name || '',
+            ''
+        ]);
+    } catch (e) {
+        console.error('Error loading animals for PDF:', e);
+    }
 
     let y = 20;
     doc.setFontSize(22);
@@ -31,7 +42,7 @@ async function generateRodeoPDF(rodeoId, rodeoNombre, animales) {
 
     doc.autoTable({
         startY: y,
-        head: [['Nº de SENASA', 'Caravana Interna', 'Nombre', 'Observaciones']],
+        head: [['N° de SENASA', 'Caravana Interna', 'Nombre', 'Observaciones']],
         body: bodyData,
         theme: 'grid',
         headStyles: { fillColor: [22, 163, 74] },
@@ -50,7 +61,7 @@ async function generateRodeoPDF(rodeoId, rodeoNombre, animales) {
     doc.save(nombreArchivo);
 }
 
-function renderRodeos(rodeos, animales) {
+function renderRodeos(rodeos) {
     const tableBody = document.getElementById('rodeos-table-body');
     tableBody.innerHTML = '';
 
@@ -59,24 +70,16 @@ function renderRodeos(rodeos, animales) {
         return;
     }
 
-    // Count animals by rodeo
-    const animalesPorRodeo = new Map();
-    animales.forEach(vaca => {
-        if (vaca.rodeo_id) {
-            animalesPorRodeo.set(vaca.rodeo_id, (animalesPorRodeo.get(vaca.rodeo_id) || 0) + 1);
-        }
-    });
-
     rodeos.forEach(rodeo => {
-        const count = animalesPorRodeo.get(rodeo.id) || 0;
+        const count = rodeo.animal_count || 0;
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${rodeo.nombre}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${rodeo.descripcion || ''}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${rodeo.name}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${rodeo.description || ''}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${count}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <a href="#" data-navigate="editar_rodeo.html?id=${rodeo.id}" class="text-green-600 hover:text-green-900">Ver / Editar</a>
-                <button class="ml-4 text-blue-600 hover:text-blue-900" onclick="generateRodeoPDF(${rodeo.id}, '${rodeo.nombre}', ${JSON.stringify(animales).replace(/'/g, "\\'")})">Descargar PDF</button>
+                <button class="ml-4 text-blue-600 hover:text-blue-900" onclick="generateRodeoPDF(${rodeo.id}, '${(rodeo.name || '').replace(/'/g, "\'")}')">Descargar PDF</button>
             </td>
         `;
         tableBody.appendChild(row);
@@ -84,11 +87,9 @@ function renderRodeos(rodeos, animales) {
 }
 
 async function loadPageData() {
-    const [rodeos, animales] = await Promise.all([
-        fetchData(`/api/establecimientos/${establecimientoId}/rodeos`),
-        fetchData(`/api/establecimientos/${establecimientoId}/vacas`)
-    ]);
-    renderRodeos(rodeos, animales);
+    const data = await fetchData(`/api/rodeos`);
+    const rodeos = (data && data.rodeos) || [];
+    renderRodeos(rodeos);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -102,3 +103,4 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
