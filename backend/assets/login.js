@@ -35,7 +35,11 @@
     }
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const base = (window.API_BASE_URL || '').toString();
+      const loginUrl = base
+        ? (base.endsWith('/') ? `${base}api/auth/login` : `${base}/api/auth/login`)
+        : '/api/auth/login';
+      const res = await fetch(loginUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

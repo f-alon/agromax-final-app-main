@@ -64,8 +64,11 @@ async function fetchData(endpoint, options = {}) {
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `Error: ${response.statusText}`);
+            let errorData = null;
+            try { errorData = await response.json(); } catch (_) {}
+            const err = new Error((errorData && (errorData.error || errorData.message)) || `Error: ${response.statusText}`);
+            err.status = response.status;
+            throw err;
         }
         
         return await response.json();

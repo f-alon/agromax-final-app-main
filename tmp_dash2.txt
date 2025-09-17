@@ -1,4 +1,4 @@
-// dashboard.js
+﻿// dashboard.js
 let dashboardData = null;
 let searchTimeout = null;
 
@@ -28,7 +28,7 @@ async function loadDashboardStats() {
         
     } catch (error) {
         console.error('Error loading dashboard stats:', error);
-        showError('Error al cargar las estadísticas del dashboard');
+        showError('Error al cargar las estadÃ­sticas del dashboard');
     }
 }
 
@@ -67,7 +67,7 @@ function createProductionChart(productionData) {
     const chartContainer = document.getElementById('productionChart');
     
     if (!productionData || productionData.length === 0) {
-        chartContainer.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500">No hay datos de producción disponibles</div>';
+        chartContainer.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500">No hay datos de producciÃ³n disponibles</div>';
         return;
     }
     
