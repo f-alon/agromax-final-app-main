@@ -1,2 +1,7 @@
 /*
   Content-Security-Policy: script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://agromax-00pa.onrender.com;
+/*
+  Content-Security-Policy: default-src 'self'; connect-src 'self' https://*.trycloudflare.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; frame-ancestors 'self';
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+/*
