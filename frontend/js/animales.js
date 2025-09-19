@@ -2,7 +2,7 @@
 
 const token = getAuthToken();
 const userData = getUserData();
-const establecimientoId = 1; // We'll use ID 1 as an example
+const establecimientoId = 1; // Not required by API; kept for compatibility
 
 function renderAnimales(animales, rodeos) {
     const tableBody = document.getElementById('animales-table-body');
@@ -14,15 +14,15 @@ function renderAnimales(animales, rodeos) {
     }
     
     // Create a map of rodeos to easily search for names
-    const rodeoMap = new Map(rodeos.map(r => [r.id, r.nombre]));
+    const rodeoMap = new Map(rodeos.map(r => [r.id, r.name]));
 
     animales.forEach(vaca => {
-        const rodeoNombre = vaca.rodeo_id ? rodeoMap.get(vaca.rodeo_id) : 'Sin asignar';
+        const rodeoNombre = vaca.rodeo_name || (vaca.current_rodeo_id ? rodeoMap.get(vaca.current_rodeo_id) : 'Sin asignar');
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${vaca.caravana_senasa || ''}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${vaca.caravana_interna}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${vaca.nombre || ''}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${vaca.senasa_caravan || ''}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${vaca.internal_caravan || ''}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${vaca.name || ''}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${rodeoNombre}</td>
             <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">${vaca.estado_actual || ''}</span></td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${vaca.estado_reproductivo || ''}</td>
@@ -35,11 +35,14 @@ function renderAnimales(animales, rodeos) {
 }
 
 async function loadPageData() {
-    const [animales, rodeos] = await Promise.all([
-        fetchData(`/api/establecimientos/${establecimientoId}/vacas`),
-        fetchData(`/api/establecimientos/${establecimientoId}/rodeos`)
+    const [animalsResp, rodeosResp] = await Promise.all([
+        fetchData(`/api/animals`),
+        fetchData(`/api/rodeos`)
     ]);
-    
+
+    const animales = (animalsResp && animalsResp.animals) || [];
+    const rodeos = (rodeosResp && rodeosResp.rodeos) || [];
+
     renderAnimales(animales, rodeos);
     
     // Load rodeos in the filter
@@ -47,7 +50,7 @@ async function loadPageData() {
     rodeos.forEach(rodeo => {
         const option = document.createElement('option');
         option.value = rodeo.id;
-        option.textContent = rodeo.nombre;
+        option.textContent = rodeo.name;
         rodeoFilter.appendChild(option);
     });
 }

@@ -25,9 +25,10 @@ async function loadAnimalData() {
     document.getElementById('vacaIdInput').value = currentVacaId;
     
     try {
-        const animal = await fetchData(`/api/establecimientos/${establecimientoId}/vacas/${currentVacaId}`);
+        const resp = await fetchData(`/api/animals/${currentVacaId}`);
+        const animal = resp && resp.animal;
         if (animal) {
-            document.getElementById('animalNameHeader').textContent = animal.nombre || animal.caravana_interna;
+            document.getElementById('animalNameHeader').textContent = animal.name || animal.internal_caravan;
         } else {
             document.getElementById('animalNameHeader').textContent = 'Animal no encontrado.';
             document.getElementById('registerReproduccionForm').style.display = 'none';
@@ -66,10 +67,20 @@ async function handleRegisterReproduccion(event) {
     }
     
     try {
-        const data = await fetchData(`/api/establecimientos/${establecimientoId}/vacas/${currentVacaId}/reproduccion`, {
+        const data = await fetchData(`/api/animals/${currentVacaId}/reproduction`, {
             method: 'POST',
-            body: JSON.stringify(reproduccionData)
+            body: JSON.stringify({
+                record_date: reproduccionData.fecha_evento,
+                record_type: reproduccionData.tipo_evento,
+                bull_id: null,
+                expected_birth_date: null,
+                actual_birth_date: null,
+                calf_sex: null,
+                calf_weight: null,
+                notes: [reproduccionData.detalle, reproduccionData.inseminador ? `Inseminador: ${reproduccionData.inseminador}` : null].filter(Boolean).join(' | ')
+            })
         });
+        messageDiv.textContent = `Registro de reproducción guardado exitosamente. Redirigiendo...`;
         messageDiv.textContent = `Registro de reproducción guardado exitosamente. Redirigiendo...`;
         messageDiv.className = 'mt-4 text-center text-sm text-green-600';
         setTimeout(() => { goBackToAnimalFicha(); }, 2000);

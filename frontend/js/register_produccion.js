@@ -25,9 +25,10 @@ async function loadAnimalData() {
     document.getElementById('vacaIdInput').value = currentVacaId;
     
     try {
-        const animal = await fetchData(`/api/establecimientos/${establecimientoId}/vacas/${currentVacaId}`);
+        const resp = await fetchData(`/api/animals/${currentVacaId}`);
+        const animal = resp && resp.animal;
         if (animal) {
-            document.getElementById('animalNameHeader').textContent = animal.nombre || animal.caravana_interna;
+            document.getElementById('animalNameHeader').textContent = animal.name || animal.internal_caravan;
         } else {
             document.getElementById('animalNameHeader').textContent = 'Animal no encontrado.';
             document.getElementById('registerProduccionForm').style.display = 'none';
@@ -64,10 +65,16 @@ async function handleRegisterProduccion(event) {
     }
     
     try {
-        const data = await fetchData(`/api/establecimientos/${establecimientoId}/vacas/${currentVacaId}/produccion`, {
+        const data = await fetchData(`/api/animals/${currentVacaId}/production`, {
             method: 'POST',
-            body: JSON.stringify(produccionData)
+            body: JSON.stringify({
+                record_date: produccionData.fecha_registro,
+                liters_per_day: produccionData.litros_dia,
+                quality_rating: produccionData.calidad_grasa || null,
+                notes: produccionData.calidad_proteina ? `Proteína: ${produccionData.calidad_proteina}` : null
+            })
         });
+        messageDiv.textContent = `Registro de producción guardado exitosamente. Redirigiendo...`;
         messageDiv.textContent = `Registro de producción guardado exitosamente. Redirigiendo...`;
         messageDiv.className = 'mt-4 text-center text-sm text-green-600';
         setTimeout(() => { goBackToAnimalFicha(); }, 2000);

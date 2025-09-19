@@ -216,7 +216,7 @@ function hideSearchResults() {
 
 // Navigate to animal
 function navigateToAnimal(animalId) {
-    parent.postMessage({ type: 'navigate', url: `ficha_animal.html?id=${animalId}` }, '*');
+    navigateTo(`ficha_animal.html?id=${animalId}`);
 }
 
 // Show error message

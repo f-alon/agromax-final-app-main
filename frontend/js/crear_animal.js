@@ -7,13 +7,14 @@ async function populateRodeosDropdown() {
     const rodeosDropdown = document.getElementById('rodeo_id');
     rodeosDropdown.innerHTML = '<option value="">Cargando rodeos...</option>';
     try {
-        const data = await fetchData(`/api/establecimientos/${establecimientoId}/rodeos`);
-        if (data && data.length > 0) {
+        const data = await fetchData(`/api/rodeos`);
+        const list = (data && data.rodeos) || [];
+        if (list && list.length > 0) {
             rodeosDropdown.innerHTML = '<option value="">Seleccione un rodeo</option>';
-            data.forEach(rodeo => {
+            list.forEach(rodeo => {
                 const option = document.createElement('option');
                 option.value = rodeo.id;
-                option.textContent = rodeo.nombre;
+                option.textContent = rodeo.name;
                 rodeosDropdown.appendChild(option);
             });
         } else {
@@ -29,16 +30,15 @@ async function handleAddAnimal(event) {
     event.preventDefault();
     const form = event.target;
     const animalData = {
-        caravana_senasa: form.caravana_senasa.value || null,
-        caravana_interna: form.caravana_interna.value,
-        nombre: form.nombre.value || null,
-        raza: form.raza.value || null,
-        fecha_nacimiento: form.fecha_nacimiento.value || null,
-        estado_actual: form.estado_actual.value,
-        estado_reproductivo: form.estado_reproductivo.value || null,
-        rodeo_id: parseInt(form.rodeo_id.value),
-        madre_id: form.madre_id.value ? parseInt(form.madre_id.value) : null,
-        padre_nombre: form.padre_nombre.value || null,
+        senasa_caravan: form.caravana_senasa.value || null,
+        internal_caravan: form.caravana_interna.value,
+        name: form.nombre.value || null,
+        breed: form.raza.value || null,
+        birth_date: form.fecha_nacimiento.value || null,
+        observations: [form.estado_actual.value, form.estado_reproductivo.value].filter(Boolean).join(' | ') || null,
+        current_rodeo_id: parseInt(form.rodeo_id.value),
+        mother_id: form.madre_id.value ? parseInt(form.madre_id.value) : null,
+        father_name: form.padre_nombre.value || null,
     };
     const messageDiv = document.getElementById('message');
     const submitBtn = document.getElementById('submitAnimalBtn');
@@ -46,7 +46,7 @@ async function handleAddAnimal(event) {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Guardando...';
     
-    if (!animalData.caravana_interna || !animalData.estado_actual || !animalData.rodeo_id) {
+    if (!animalData.internal_caravan || !animalData.current_rodeo_id) {
         messageDiv.textContent = 'Por favor, complete los campos obligatorios.';
         messageDiv.className = 'mt-4 text-center text-sm text-red-600';
         submitBtn.disabled = false;
@@ -55,11 +55,14 @@ async function handleAddAnimal(event) {
     }
     
     try {
-        const data = await fetchData(`/api/establecimientos/${establecimientoId}/vacas`, {
+        const data = await fetchData(`/api/animals`, {
             method: 'POST',
             body: JSON.stringify(animalData),
         });
         messageDiv.textContent = `Animal "${data.vaca.nombre || data.vaca.caravana_interna}" añadido exitosamente. Redirigiendo...`;
+        const created = (data && data.animal) || {};
+        const display = created.name || created.internal_caravan || animalData.internal_caravan;
+        messageDiv.textContent = `Animal "${display}" añadido exitosamente. Redirigiendo...`;
         messageDiv.className = 'mt-4 text-center text-sm text-green-600';
         setTimeout(() => {
             navigateTo('animales.html');

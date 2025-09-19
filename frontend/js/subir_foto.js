@@ -64,25 +64,10 @@ async function handleUploadPhoto(event) {
     formData.append('descripcion', descripcion || '');
     
     try {
-        await fetch(API_BASE_URL);
-        const response = await fetch(`${API_BASE_URL}/api/establecimientos/${establecimientoId}/vacas/${currentVacaId}/fotos`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
-            body: formData,
-        });
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.message || 'Error al subir la foto.');
-        }
-        
-        messageDiv.textContent = `Foto subida exitosamente. Redirigiendo...`;
-        messageDiv.className = 'mt-4 text-center text-sm text-green-600';
-        setTimeout(() => { goBackToAnimalFicha(); }, 2000);
+        messageDiv.textContent = 'La subida de fotos no está disponible aún.';
+        messageDiv.className = 'mt-4 text-center text-sm text-yellow-600';
     } catch (error) {
         console.error('Error al subir foto:', error);
-        messageDiv.textContent = `Error: ${error.message}`;
-        messageDiv.className = 'mt-4 text-center text-sm text-red-600';
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Subir Foto';

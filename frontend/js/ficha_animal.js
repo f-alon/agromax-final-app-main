@@ -255,27 +255,49 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    Promise.all([
-        fetchData(`/api/establecimientos/${establecimientoId}/vacas/${vacaId}`),
-        fetchData(`/api/establecimientos/${establecimientoId}/vacas/${vacaId}/salud`),
-        fetchData(`/api/establecimientos/${establecimientoId}/vacas/${vacaId}/reproduccion`),
-        fetchData(`/api/establecimientos/${establecimientoId}/vacas/${vacaId}/produccion`),
-        fetchData(`/api/establecimientos/${establecimientoId}/vacas/${vacaId}/fotos`) // New call for photos
-    ]).then(([vaca, salud, reproduccion, produccion, fotos]) => {
-        // Ensure data are arrays, even if they come null
-        vacaData = { 
-            vaca: vaca, 
-            salud: salud || [], 
-            reproduccion: reproduccion || [], 
-            produccion: produccion || [],
-            fotos: fotos || [] // Assign photos
+    fetchData(`/api/animals/${vacaId}`)
+      .then((resp) => {
+        const animal = resp.animal || {};
+        // Map backend fields to expected UI fields
+        const vaca = {
+          id: animal.id,
+          nombre: animal.name || '',
+          caravana_senasa: animal.senasa_caravan || '',
+          caravana_interna: animal.internal_caravan || '',
+          raza: animal.breed || '',
+          estado_actual: (animal.observations || '').split(' | ')[0] || '',
+          estado_reproductivo: (animal.observations || '').split(' | ')[1] || ''
         };
+        const salud = (resp.healthRecords || []).map(h => ({
+          fecha_evento: h.record_date,
+          tipo_evento: h.event_type,
+          descripcion: h.description || ''
+        }));
+        const reproduccion = (resp.reproductionRecords || []).map(r => ({
+          fecha_evento: r.record_date,
+          tipo_evento: r.record_type,
+          detalle: r.notes || '',
+          inseminador: r.bull_id ? `Toro ID: ${r.bull_id}` : ''
+        }));
+        const produccion = (resp.productionRecords || []).map(p => ({
+          fecha_registro: p.record_date,
+          litros_dia: p.liters_per_day,
+          calidad_grasa: p.quality_rating || null,
+          calidad_proteina: null
+        }));
+        const fotos = (resp.photos || []).map(f => ({
+          url_foto: f.photo_url,
+          descripcion: f.photo_description || ''
+        }));
+
+        vacaData = { vaca, salud, reproduccion, produccion, fotos };
         renderHeader(vaca);
-        renderTabContent('resumen'); // Show summary by default
-    }).catch(error => {
+        renderTabContent('resumen');
+      })
+      .catch(error => {
         console.error("Error loading all cow data:", error);
         document.body.innerHTML = `<h1 class="text-red-600 text-center mt-10">Error al cargar la ficha del animal: ${error.message}</h1>`;
-    });
+      });
 
     const tabs = document.querySelectorAll('.tab-button');
     tabs.forEach(tab => {
