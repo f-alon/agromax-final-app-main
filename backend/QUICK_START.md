@@ -1,6 +1,6 @@
 # 🚀 Guía de Inicio Rápido - AgroMax
 
-Esta guía te ayudará a configurar y ejecutar AgroMax en pocos minutos.
+Esta guía te ayudará a configurar y ejecutar AgroMax en pocos minutoss.
 
 ## ⚡ Configuración Rápida
 
