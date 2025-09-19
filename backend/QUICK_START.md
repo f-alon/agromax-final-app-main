@@ -38,7 +38,7 @@ npm start
 
 ## 🔧 Configuración Manual (Si es Necesario)
 
-### Variables de Entorno para conciderar
+### Variables de Entorno para conciderar..
 Crear archivo `.env` en `backend/`:
 ```bash
 DATABASE_PATH=./database/agromax.db
