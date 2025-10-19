@@ -3,74 +3,59 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-console.log('Configurando AgroMax...\n');
+console.log('Iniciando configuracion de AgroMax...\n');
 
-// Verificar si existe el archivo .env
-const envPath = path.join(__dirname, '../.env');
-const envExamplePath = path.join(__dirname, '../env.example');
+const rootDir = path.join(__dirname, '..');
+const envPath = path.join(rootDir, '.env');
+const envExamplePath = path.join(rootDir, 'env.example');
 
+// Ensure .env exists
 if (!fs.existsSync(envPath)) {
   if (fs.existsSync(envExamplePath)) {
-    console.log('Copiando archivo de configuración de ejemplo...');
+    console.log('Creando archivo .env desde env.example...');
     fs.copyFileSync(envExamplePath, envPath);
-    console.log('Archivo .env creado desde env.example');
-    console.log('Por favor, edita el archivo .env con tus configuraciones antes de continuar.\n');
+    console.log('Archivo .env generado. Actualiza DATABASE_URL y JWT_SECRET segun tu entorno.\n');
   } else {
-    console.log('No se encontró el archivo env.example');
-    console.log('Crea un archivo .env con las siguientes variables:');
-    console.log('  DATABASE_PATH=./database/agromax.db');
+    console.log('No se encontro env.example. Crea un archivo .env con al menos:');
+    console.log('  DATABASE_URL=postgres://usuario:password@host:puerto/db');
     console.log('  JWT_SECRET=tu_secret_seguro');
-    console.log('  PORT=3000');
-    console.log('  NODE_ENV=development\n');
+    console.log('  NODE_ENV=development');
+    console.log('');
   }
 }
 
-// Verificar si las dependencias están instaladas
-console.log('Verificando dependencias...');
+// Check required dependencies
+console.log('Verificando dependencias clave...');
 try {
-  require('sqlite3');
+  require('pg');
   require('bcryptjs');
   require('jsonwebtoken');
-  console.log('Dependencias instaladas correctamente\n');
+  console.log('Dependencias cargadas correctamente.\n');
 } catch (error) {
-  console.log('Faltan dependencias. Ejecuta: npm install\n');
+  console.error('Faltan dependencias. Ejecuta: npm install');
   process.exit(1);
 }
 
-// Ejecutar migraciones
-console.log('Ejecutando migraciones de base de datos...');
+// Run migration
+console.log('Ejecutando migracion principal...');
 try {
-  execSync('node scripts/migrate.js', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
-  console.log('Migraciones ejecutadas correctamente\n');
+  execSync('node scripts/migrate.js', { stdio: 'inherit', cwd: rootDir });
+  console.log('Migracion ejecutada correctamente.\n');
 } catch (error) {
-  console.log('Error ejecutando migraciones:', error.message);
-  console.log('Asegúrate de que:');
-  console.log('  1. SQLite3 esté instalado');
-  console.log('  2. El directorio database sea escribible');
-  console.log('  3. Las configuraciones en .env sean correctas\n');
+  console.error('Error ejecutando la migracion:', error.message);
+  console.error('Verifica que DATABASE_URL apunte a tu instancia de PostgreSQL.\n');
   process.exit(1);
 }
 
-// Crear usuario administrador
-console.log('Creando usuario administrador...');
+// Create default admin
+console.log('Creando usuario administrador por defecto (si no existe)...');
 try {
-  execSync('node scripts/create_admin.js', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
-  console.log('Usuario administrador creado correctamente\n');
+  execSync('node scripts/create_admin.js', { stdio: 'inherit', cwd: rootDir });
+  console.log('Usuario administrador verificado.\n');
 } catch (error) {
-  console.log('Error creando usuario administrador:', error.message);
-  console.log('Puedes crear el usuario manualmente ejecutando: npm run create-admin\n');
+  console.error('No se pudo crear el usuario administrador:', error.message);
+  console.error('Puedes ejecutarlo manualmente con: node scripts/create_admin.js\n');
 }
 
-console.log('¡Configuración completada!');
-console.log('\nResumen:');
-console.log('  • Base de datos configurada');
-console.log('  • Tablas creadas');
-console.log('  • Usuario administrador creado');
-console.log('\nCredenciales de administrador:');
-console.log('  Email: admin@agromax.com');
-console.log('  Contraseña: admin');
-console.log('\nPara iniciar el servidor:');
-console.log('  npm run dev    (desarrollo)');
-console.log('  npm start      (producción)');
-console.log('\nIMPORTANTE: Cambia la contraseña del administrador después del primer inicio de sesión.');
-
+console.log('Configuracion finalizada.');
+console.log('Recuerda definir JWT_SECRET y DATABASE_URL antes de iniciar el servidor.');

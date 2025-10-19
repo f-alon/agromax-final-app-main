@@ -14,7 +14,7 @@ const getUserEstablishment = async (req, res, next) => {
       `SELECT ue.establishment_id, e.name as establishment_name 
        FROM user_establishments ue 
        JOIN establishments e ON ue.establishment_id = e.id 
-       WHERE ue.user_id = ? AND ue.is_active = 1`,
+       WHERE ue.user_id = $1 AND ue.is_active = TRUE`,
       [userId]
     );
     
@@ -41,10 +41,10 @@ router.get('/', authenticateToken, getUserEstablishment, async (req, res) => {
               COUNT(a.id) as animal_count,
               (SELECT COUNT(*) FROM animal_alerts aa 
                JOIN animals a2 ON aa.animal_id = a2.id 
-               WHERE a2.current_rodeo_id = r.id AND aa.is_active = 1) as active_alerts
+               WHERE a2.current_rodeo_id = r.id AND aa.is_active = TRUE) as active_alerts
        FROM rodeos r
-       LEFT JOIN animals a ON r.id = a.current_rodeo_id AND a.is_active = 1
-       WHERE r.establishment_id = ? AND r.is_active = 1
+       LEFT JOIN animals a ON r.id = a.current_rodeo_id AND a.is_active = TRUE
+       WHERE r.establishment_id = $1 AND r.is_active = TRUE
        GROUP BY r.id
        ORDER BY r.name`,
       [establishmentId]
@@ -66,7 +66,7 @@ router.get('/:id', authenticateToken, getUserEstablishment, async (req, res) => 
 
     // Get rodeo info
     const rodeo = await runSingle(
-      'SELECT * FROM rodeos WHERE id = ? AND establishment_id = ? AND is_active = 1',
+      'SELECT * FROM rodeos WHERE id = $1 AND establishment_id = $2 AND is_active = TRUE',
       [id, establishmentId]
     );
 
@@ -77,9 +77,9 @@ router.get('/:id', authenticateToken, getUserEstablishment, async (req, res) => 
     // Get animals in this rodeo
     const animals = await runQuery(
       `SELECT a.id, a.senasa_caravan, a.internal_caravan, a.name, a.birth_date, a.breed,
-              (SELECT COUNT(*) FROM animal_alerts aa WHERE aa.animal_id = a.id AND aa.is_active = 1) as active_alerts
+              (SELECT COUNT(*) FROM animal_alerts aa WHERE aa.animal_id = a.id AND aa.is_active = TRUE) as active_alerts
        FROM animals a
-       WHERE a.current_rodeo_id = ? AND a.establishment_id = ? AND a.is_active = 1
+       WHERE a.current_rodeo_id = $1 AND a.establishment_id = $2 AND a.is_active = TRUE
        ORDER BY a.senasa_caravan, a.internal_caravan, a.name`,
       [id, establishmentId]
     );
@@ -106,7 +106,7 @@ router.post('/', authenticateToken, getUserEstablishment, async (req, res) => {
 
     // Check if rodeo name already exists in this establishment
     const existingRodeo = await runSingle(
-      'SELECT id FROM rodeos WHERE name = ? AND establishment_id = ? AND is_active = 1',
+      'SELECT id FROM rodeos WHERE name = $1 AND establishment_id = $2 AND is_active = TRUE',
       [name, establishmentId]
     );
 
@@ -116,22 +116,22 @@ router.post('/', authenticateToken, getUserEstablishment, async (req, res) => {
 
     // Create rodeo
     const result = await runExecute(
-      'INSERT INTO rodeos (name, description, establishment_id) VALUES (?, ?, ?)',
+      'INSERT INTO rodeos (name, description, establishment_id) VALUES ($1, $2, $3) RETURNING id',
       [name, description, establishmentId]
     );
 
     const rodeo = {
-      id: result.id,
+      id: result.rows[0]?.id,
       name,
       description,
       establishment_id: establishmentId,
-      is_active: 1,
+      is_active: true,
       created_at: new Date().toISOString()
     };
 
     // Log activity
     await runExecute(
-      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [
         establishmentId, userId, 'rodeo_created',
         `Rodeo created: ${rodeo.name}`,
@@ -160,7 +160,7 @@ router.put('/:id', authenticateToken, getUserEstablishment, async (req, res) => 
 
     // Check if rodeo exists and belongs to user's establishment
     const existingRodeo = await runSingle(
-      'SELECT * FROM rodeos WHERE id = ? AND establishment_id = ? AND is_active = 1',
+      'SELECT * FROM rodeos WHERE id = $1 AND establishment_id = $2 AND is_active = TRUE',
       [id, establishmentId]
     );
 
@@ -171,7 +171,7 @@ router.put('/:id', authenticateToken, getUserEstablishment, async (req, res) => 
     // Check if new name already exists in this establishment (if name is being changed)
     if (name && name !== existingRodeo.name) {
       const nameExists = await runSingle(
-        'SELECT id FROM rodeos WHERE name = ? AND establishment_id = ? AND is_active = 1 AND id != ?',
+        'SELECT id FROM rodeos WHERE name = $1 AND establishment_id = $2 AND is_active = TRUE AND id != $3',
         [name, establishmentId, id]
       );
 
@@ -182,7 +182,7 @@ router.put('/:id', authenticateToken, getUserEstablishment, async (req, res) => 
 
     // Update rodeo
     await runExecute(
-      'UPDATE rodeos SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND establishment_id = ?',
+      'UPDATE rodeos SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 AND establishment_id = $4',
       [name, description, id, establishmentId]
     );
 
@@ -191,12 +191,12 @@ router.put('/:id', authenticateToken, getUserEstablishment, async (req, res) => 
       name,
       description,
       establishment_id: establishmentId,
-      is_active: 1
+      is_active: true
     };
 
     // Log activity
     await runExecute(
-      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [
         establishmentId, userId, 'rodeo_updated',
         `Rodeo updated: ${rodeo.name}`,
@@ -224,7 +224,7 @@ router.delete('/:id', authenticateToken, getUserEstablishment, async (req, res) 
 
     // Check if rodeo exists and belongs to user's establishment
     const existingRodeo = await runSingle(
-      'SELECT * FROM rodeos WHERE id = ? AND establishment_id = ? AND is_active = 1',
+      'SELECT * FROM rodeos WHERE id = $1 AND establishment_id = $2 AND is_active = TRUE',
       [id, establishmentId]
     );
 
@@ -234,7 +234,7 @@ router.delete('/:id', authenticateToken, getUserEstablishment, async (req, res) 
 
     // Check if rodeo has animals
     const animalsInRodeo = await runSingle(
-      'SELECT COUNT(*) as count FROM animals WHERE current_rodeo_id = ? AND is_active = 1',
+      'SELECT COUNT(*) as count FROM animals WHERE current_rodeo_id = $1 AND is_active = TRUE',
       [id]
     );
 
@@ -244,13 +244,13 @@ router.delete('/:id', authenticateToken, getUserEstablishment, async (req, res) 
 
     // Soft delete rodeo
     await runExecute(
-      'UPDATE rodeos SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND establishment_id = ?',
+      'UPDATE rodeos SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND establishment_id = $2',
       [id, establishmentId]
     );
 
     // Log activity
     await runExecute(
-      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [
         establishmentId, userId, 'rodeo_deleted',
         `Rodeo deleted: ${existingRodeo.name}`,
@@ -283,7 +283,7 @@ router.post('/move-animals', authenticateToken, getUserEstablishment, async (req
 
     // Check if target rodeo exists and belongs to the same establishment
     const rodeo = await runSingle(
-      'SELECT * FROM rodeos WHERE id = ? AND establishment_id = ? AND is_active = 1',
+      'SELECT * FROM rodeos WHERE id = $1 AND establishment_id = $2 AND is_active = TRUE',
       [to_rodeo_id, establishmentId]
     );
 
@@ -296,7 +296,7 @@ router.post('/move-animals', authenticateToken, getUserEstablishment, async (req
     for (const animalId of animal_ids) {
       // Check if animal exists and belongs to user's establishment
       const animal = await runSingle(
-        'SELECT * FROM animals WHERE id = ? AND establishment_id = ? AND is_active = 1',
+        'SELECT * FROM animals WHERE id = $1 AND establishment_id = $2 AND is_active = TRUE',
         [animalId, establishmentId]
       );
 
@@ -305,13 +305,13 @@ router.post('/move-animals', authenticateToken, getUserEstablishment, async (req
         
         // Update animal's current rodeo
         await runExecute(
-          'UPDATE animals SET current_rodeo_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          'UPDATE animals SET current_rodeo_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
           [to_rodeo_id, animalId]
         );
         
         // Log the movement
         await runExecute(
-          'INSERT INTO animal_movements (animal_id, from_rodeo_id, to_rodeo_id, reason, created_by) VALUES (?, ?, ?, ?, ?)',
+          'INSERT INTO animal_movements (animal_id, from_rodeo_id, to_rodeo_id, reason, created_by) VALUES ($1, $2, $3, $4, $5)',
           [animalId, from_rodeo_id, to_rodeo_id, reason, userId]
         );
         
@@ -321,7 +321,7 @@ router.post('/move-animals', authenticateToken, getUserEstablishment, async (req
 
     // Log bulk activity
     await runExecute(
-      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [
         establishmentId, userId, 'bulk_animal_movement',
         `${movedAnimals.length} animals moved to rodeo: ${rodeo.name}`,

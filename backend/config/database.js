@@ -1,72 +1,84 @@
-// config/database.js
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const fs = require('fs');
+// backend/config/database.js
+const { Pool } = require('pg');
 require('dotenv').config();
 
-// Database file path
-const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../database/agromax.db');
-
-// Create database directory if it doesn't exist
-const dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+if (!process.env.DATABASE_URL) {
+  throw new Error('Falta la variable de entorno DATABASE_URL');
 }
 
-// Create database connection
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('❌ SQLite connection error:', err);
-    process.exit(-1);
-  } else {
-    console.log('✅ Connected to SQLite database');
-  }
+/**
+ * SSL:
+ * - Si usa Render Postgres con Internal URL: normalmente NO hace falta SSL (false).
+ * - Si usa Neon u otro proveedor externo: poné PGSSLMODE=require en las env vars
+ *   y esto activará SSL con rejectUnauthorized: false.
+ */
+const shouldUseSsl =
+  (process.env.PGSSLMODE || '').toLowerCase() === 'require' ||
+  process.env.DATABASE_URL.includes('neon.tech');
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: shouldUseSsl ? { rejectUnauthorized: false } : false
 });
 
-// Enable foreign keys
-db.run('PRAGMA foreign_keys = ON');
+/**
+ * Equivalentes a helpers de SQLite:
+ * - runQuery: devuelve TODAS las filas (rows)
+ * - runSingle: devuelve UNA fila (o null)
+ * - runExecute: devuelve { rowCount, rows } (usá RETURNING en INSERT/UPDATE para obtener ids)
+ */
 
-// Helper function to run queries with promises
-const runQuery = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(rows);
-      }
-    });
-  });
+const prepareSql = (sql = '') => {
+  if (typeof sql !== 'string') return sql;
+
+  let transformed = sql;
+
+  // Replace boolean literals (common column prefixes)
+  transformed = transformed.replace(
+    /\b(is_[a-z0-9_]+|can_[a-z0-9_]+)\s*=\s*1\b/gi,
+    (_, column) => `${column} = TRUE`
+  );
+
+  transformed = transformed.replace(
+    /\b(is_[a-z0-9_]+|can_[a-z0-9_]+)\s*=\s*0\b/gi,
+    (_, column) => `${column} = FALSE`
+  );
+
+  // Convert SQLite-style placeholders (?) to PostgreSQL-style ($1, $2, ...)
+  if (transformed.includes('?')) {
+    let index = 0;
+    transformed = transformed.replace(/\?/g, () => `$${++index}`);
+  }
+
+  // Ensure boolean comparisons cast parameters correctly
+  transformed = transformed.replace(
+    /\b(is_[a-z0-9_]+|can_[a-z0-9_]+)\s*=\s*(\$\d+)/gi,
+    (_, column, placeholder) => `${column} = ${placeholder}::BOOLEAN`
+  );
+
+  return transformed;
 };
 
-// Helper function to run single query
-const runSingle = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(row);
-      }
-    });
-  });
+const runQuery = async (sql, params = []) => {
+  const text = prepareSql(sql);
+  const { rows } = await pool.query(text, params);
+  return rows; // array
 };
 
-// Helper function to run insert/update/delete
-const runExecute = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function(err) {
-      if (err) {
-        reject(err);
-      } else {
-        resolve({ id: this.lastID, changes: this.changes });
-      }
-    });
-  });
+const runSingle = async (sql, params = []) => {
+  const text = prepareSql(sql);
+  const { rows } = await pool.query(text, params);
+  return rows[0] ?? null;
+};
+
+const runExecute = async (sql, params = []) => {
+  const text = prepareSql(sql);
+  const res = await pool.query(text, params);
+  return { rowCount: res.rowCount, rows: res.rows };
 };
 
 module.exports = {
-  db,
+  pool,
   runQuery,
   runSingle,
   runExecute

@@ -14,7 +14,7 @@ const getUserEstablishment = async (req, res, next) => {
       `SELECT ue.establishment_id, e.name as establishment_name 
        FROM user_establishments ue 
        JOIN establishments e ON ue.establishment_id = e.id 
-       WHERE ue.user_id = ? AND ue.is_active = 1`,
+       WHERE ue.user_id = $1 AND ue.is_active = TRUE`,
       [userId]
     );
     
@@ -42,51 +42,60 @@ router.get('/', authenticateToken, getUserEstablishment, async (req, res) => {
       SELECT a.id, a.senasa_caravan, a.internal_caravan, a.name, a.birth_date, 
              a.breed, a.entry_date, a.observations, a.current_rodeo_id,
              r.name as rodeo_name, a.created_at,
-             (SELECT COUNT(*) FROM animal_alerts aa WHERE aa.animal_id = a.id AND aa.is_active = 1) as active_alerts
+             (SELECT COUNT(*) FROM animal_alerts aa WHERE aa.animal_id = a.id AND aa.is_active = TRUE) as active_alerts
       FROM animals a
       LEFT JOIN rodeos r ON a.current_rodeo_id = r.id
-      WHERE a.establishment_id = ? AND a.is_active = 1
+      WHERE a.establishment_id = $1 AND a.is_active = TRUE
     `;
-    
+
     const queryParams = [establishmentId];
-    let paramCount = 1;
+    const addParam = (value) => {
+      queryParams.push(value);
+      return `$${queryParams.length}`;
+    };
 
     if (search) {
-      paramCount++;
-      query += ` AND (a.senasa_caravan LIKE ? OR a.internal_caravan LIKE ? OR a.name LIKE ?)`;
-      queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
+      const likeValue = `%${search}%`;
+      const senasa = addParam(likeValue);
+      const internal = addParam(likeValue);
+      const nameParam = addParam(likeValue);
+      query += ` AND (a.senasa_caravan ILIKE ${senasa} OR a.internal_caravan ILIKE ${internal} OR a.name ILIKE ${nameParam})`;
     }
 
     if (rodeo_id) {
-      paramCount++;
-      query += ` AND a.current_rodeo_id = ?`;
-      queryParams.push(rodeo_id);
+      const rodeoPlaceholder = addParam(rodeo_id);
+      query += ` AND a.current_rodeo_id = ${rodeoPlaceholder}`;
     }
 
-    query += ` ORDER BY a.created_at DESC LIMIT ? OFFSET ?`;
-    queryParams.push(parseInt(limit), offset);
+    const limitPlaceholder = addParam(parseInt(limit, 10));
+    const offsetPlaceholder = addParam(offset);
+    query += ` ORDER BY a.created_at DESC LIMIT ${limitPlaceholder} OFFSET ${offsetPlaceholder}`;
 
     const animals = await runQuery(query, queryParams);
 
     // Get total count
-    let countQuery = 'SELECT COUNT(*) as count FROM animals a WHERE a.establishment_id = ? AND a.is_active = 1';
+    let countQuery = 'SELECT COUNT(*) as count FROM animals a WHERE a.establishment_id = $1 AND a.is_active = TRUE';
     const countParams = [establishmentId];
-    let countParamCount = 1;
+    const addCountParam = (value) => {
+      countParams.push(value);
+      return `$${countParams.length}`;
+    };
 
     if (search) {
-      countParamCount++;
-      countQuery += ` AND (a.senasa_caravan LIKE ? OR a.internal_caravan LIKE ? OR a.name LIKE ?)`;
-      countParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
+      const likeValue = `%${search}%`;
+      const senasa = addCountParam(likeValue);
+      const internal = addCountParam(likeValue);
+      const nameParam = addCountParam(likeValue);
+      countQuery += ` AND (a.senasa_caravan ILIKE ${senasa} OR a.internal_caravan ILIKE ${internal} OR a.name ILIKE ${nameParam})`;
     }
 
     if (rodeo_id) {
-      countParamCount++;
-      countQuery += ` AND a.current_rodeo_id = ?`;
-      countParams.push(rodeo_id);
+      const rodeoPlaceholder = addCountParam(rodeo_id);
+      countQuery += ` AND a.current_rodeo_id = ${rodeoPlaceholder}`;
     }
 
     const countResult = await runSingle(countQuery, countParams);
-    const totalAnimals = countResult.count;
+    const totalAnimals = Number(countResult?.count ?? 0);
 
     res.json({
       animals,
@@ -116,7 +125,7 @@ router.get('/:id', authenticateToken, getUserEstablishment, async (req, res) => 
        FROM animals a
        LEFT JOIN rodeos r ON a.current_rodeo_id = r.id
        LEFT JOIN animals m ON a.mother_id = m.id
-       WHERE a.id = ? AND a.establishment_id = ? AND a.is_active = 1`,
+       WHERE a.id = $1 AND a.establishment_id = $2 AND a.is_active = TRUE`,
       [id, establishmentId]
     );
 
@@ -126,19 +135,19 @@ router.get('/:id', authenticateToken, getUserEstablishment, async (req, res) => 
 
     // Get production records
     const productionRecords = await runQuery(
-      'SELECT * FROM animal_production_records WHERE animal_id = ? ORDER BY record_date DESC',
+      'SELECT * FROM animal_production_records WHERE animal_id = $1 ORDER BY record_date DESC',
       [id]
     );
 
     // Get health records
     const healthRecords = await runQuery(
-      'SELECT * FROM animal_health_records WHERE animal_id = ? ORDER BY record_date DESC',
+      'SELECT * FROM animal_health_records WHERE animal_id = $1 ORDER BY record_date DESC',
       [id]
     );
 
     // Get reproduction records
     const reproductionRecords = await runQuery(
-      'SELECT * FROM animal_reproduction_records WHERE animal_id = ? ORDER BY record_date DESC',
+      'SELECT * FROM animal_reproduction_records WHERE animal_id = $1 ORDER BY record_date DESC',
       [id]
     );
 
@@ -148,19 +157,19 @@ router.get('/:id', authenticateToken, getUserEstablishment, async (req, res) => 
        FROM animal_movements am
        LEFT JOIN rodeos r1 ON am.from_rodeo_id = r1.id
        LEFT JOIN rodeos r2 ON am.to_rodeo_id = r2.id
-       WHERE am.animal_id = ? ORDER BY am.movement_date DESC`,
+       WHERE am.animal_id = $1 ORDER BY am.movement_date DESC`,
       [id]
     );
 
     // Get photos
     const photos = await runQuery(
-      'SELECT * FROM animal_photos WHERE animal_id = ? ORDER BY is_primary DESC, created_at DESC',
+      'SELECT * FROM animal_photos WHERE animal_id = $1 ORDER BY is_primary DESC, created_at DESC',
       [id]
     );
 
     // Get active alerts
     const alerts = await runQuery(
-      'SELECT * FROM animal_alerts WHERE animal_id = ? AND is_active = 1 ORDER BY alert_date DESC',
+      'SELECT * FROM animal_alerts WHERE animal_id = $1 AND is_active = TRUE ORDER BY alert_date DESC',
       [id]
     );
 
@@ -207,7 +216,7 @@ router.post('/', authenticateToken, getUserEstablishment, async (req, res) => {
     // Check if SENASA caravan already exists
     if (senasa_caravan) {
       const existingSenasa = await runSingle(
-        'SELECT id FROM animals WHERE senasa_caravan = ? AND is_active = 1',
+        'SELECT id FROM animals WHERE senasa_caravan = $1 AND is_active = TRUE',
         [senasa_caravan]
       );
       if (existingSenasa) {
@@ -218,7 +227,7 @@ router.post('/', authenticateToken, getUserEstablishment, async (req, res) => {
     // Check if internal caravan already exists in this establishment
     if (internal_caravan) {
       const existingInternal = await runSingle(
-        'SELECT id FROM animals WHERE internal_caravan = ? AND establishment_id = ? AND is_active = 1',
+        'SELECT id FROM animals WHERE internal_caravan = $1 AND establishment_id = $2 AND is_active = TRUE',
         [internal_caravan, establishmentId]
       );
       if (existingInternal) {
@@ -232,7 +241,7 @@ router.post('/', authenticateToken, getUserEstablishment, async (req, res) => {
         senasa_caravan, internal_caravan, name, birth_date, breed, 
         mother_id, father_name, entry_date, observations, 
         establishment_id, current_rodeo_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
       [
         senasa_caravan, internal_caravan, name, birth_date, breed,
         mother_id, father_name, entry_date, observations,
@@ -241,7 +250,7 @@ router.post('/', authenticateToken, getUserEstablishment, async (req, res) => {
     );
 
     const animal = {
-      id: result.id,
+      id: result.rows[0]?.id,
       senasa_caravan,
       internal_caravan,
       name,
@@ -257,7 +266,7 @@ router.post('/', authenticateToken, getUserEstablishment, async (req, res) => {
 
     // Log activity
     await runExecute(
-      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [
         establishmentId, userId, 'animal_created', 
         `Animal created: ${animal.senasa_caravan || animal.internal_caravan}`,
@@ -286,7 +295,7 @@ router.put('/:id', authenticateToken, getUserEstablishment, async (req, res) => 
 
     // Check if animal exists and belongs to user's establishment
     const existingAnimal = await runSingle(
-      'SELECT * FROM animals WHERE id = ? AND establishment_id = ? AND is_active = 1',
+      'SELECT * FROM animals WHERE id = $1 AND establishment_id = $2 AND is_active = TRUE',
       [id, establishmentId]
     );
 
@@ -297,10 +306,10 @@ router.put('/:id', authenticateToken, getUserEstablishment, async (req, res) => 
     // Update animal
     await runExecute(
       `UPDATE animals SET 
-        senasa_caravan = ?, internal_caravan = ?, name = ?, birth_date = ?, 
-        breed = ?, mother_id = ?, father_name = ?, entry_date = ?, 
-        observations = ?, current_rodeo_id = ?, updated_at = CURRENT_TIMESTAMP
-       WHERE id = ? AND establishment_id = ?`,
+        senasa_caravan = $1, internal_caravan = $2, name = $3, birth_date = $4, 
+        breed = $5, mother_id = $6, father_name = $7, entry_date = $8, 
+        observations = $9, current_rodeo_id = $10, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $11 AND establishment_id = $12`,
       [
         updateData.senasa_caravan, updateData.internal_caravan, updateData.name,
         updateData.birth_date, updateData.breed, updateData.mother_id,
@@ -317,7 +326,7 @@ router.put('/:id', authenticateToken, getUserEstablishment, async (req, res) => 
 
     // Log activity
     await runExecute(
-      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [
         establishmentId, userId, 'animal_updated',
         `Animal updated: ${animal.senasa_caravan || animal.internal_caravan}`,
@@ -346,7 +355,7 @@ router.post('/:id/move', authenticateToken, getUserEstablishment, async (req, re
 
     // Check if animal exists and belongs to user's establishment
     const animal = await runSingle(
-      'SELECT * FROM animals WHERE id = ? AND establishment_id = ? AND is_active = 1',
+      'SELECT * FROM animals WHERE id = $1 AND establishment_id = $2 AND is_active = TRUE',
       [id, establishmentId]
     );
 
@@ -356,7 +365,7 @@ router.post('/:id/move', authenticateToken, getUserEstablishment, async (req, re
 
     // Check if target rodeo exists and belongs to the same establishment
     const rodeo = await runSingle(
-      'SELECT * FROM rodeos WHERE id = ? AND establishment_id = ? AND is_active = 1',
+      'SELECT * FROM rodeos WHERE id = $1 AND establishment_id = $2 AND is_active = TRUE',
       [to_rodeo_id, establishmentId]
     );
 
@@ -368,19 +377,19 @@ router.post('/:id/move', authenticateToken, getUserEstablishment, async (req, re
 
     // Update animal's current rodeo
     await runExecute(
-      'UPDATE animals SET current_rodeo_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE animals SET current_rodeo_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
       [to_rodeo_id, id]
     );
     
     // Log the movement
     await runExecute(
-      'INSERT INTO animal_movements (animal_id, from_rodeo_id, to_rodeo_id, reason, created_by) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO animal_movements (animal_id, from_rodeo_id, to_rodeo_id, reason, created_by) VALUES ($1, $2, $3, $4, $5)',
       [id, from_rodeo_id, to_rodeo_id, reason, userId]
     );
     
     // Log the activity
     await runExecute(
-      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [
         establishmentId, userId, 'animal_movement',
         'Animal moved between rodeos',
@@ -410,7 +419,7 @@ router.post('/:id/production', authenticateToken, getUserEstablishment, async (r
 
     // Check if animal exists and belongs to user's establishment
     const animal = await runSingle(
-      'SELECT * FROM animals WHERE id = ? AND establishment_id = ? AND is_active = 1',
+      'SELECT * FROM animals WHERE id = $1 AND establishment_id = $2 AND is_active = TRUE',
       [id, establishmentId]
     );
 
@@ -421,12 +430,12 @@ router.post('/:id/production', authenticateToken, getUserEstablishment, async (r
     // Add production record
     const result = await runExecute(
       `INSERT INTO animal_production_records (animal_id, record_date, liters_per_day, quality_rating, notes, created_by)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
       [id, record_date, liters_per_day, quality_rating, notes, userId]
     );
 
     const record = {
-      id: result.id,
+      id: result.rows[0]?.id,
       animal_id: parseInt(id),
       record_date,
       liters_per_day,
@@ -437,7 +446,7 @@ router.post('/:id/production', authenticateToken, getUserEstablishment, async (r
 
     // Log activity
     await runExecute(
-      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [
         establishmentId, userId, 'production_record_added',
         `Production record added for animal: ${animal.senasa_caravan || animal.internal_caravan}`,
@@ -466,7 +475,7 @@ router.post('/:id/health', authenticateToken, getUserEstablishment, async (req, 
 
     // Check if animal exists and belongs to user's establishment
     const animal = await runSingle(
-      'SELECT * FROM animals WHERE id = ? AND establishment_id = ? AND is_active = 1',
+      'SELECT * FROM animals WHERE id = $1 AND establishment_id = $2 AND is_active = TRUE',
       [id, establishmentId]
     );
 
@@ -477,12 +486,12 @@ router.post('/:id/health', authenticateToken, getUserEstablishment, async (req, 
     // Add health record
     const result = await runExecute(
       `INSERT INTO animal_health_records (animal_id, record_date, event_type, description, treatment, cost, veterinarian, notes, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
       [id, record_date, event_type, description, treatment, cost, veterinarian, notes, userId]
     );
 
     const record = {
-      id: result.id,
+      id: result.rows[0]?.id,
       animal_id: parseInt(id),
       record_date,
       event_type,
@@ -496,7 +505,7 @@ router.post('/:id/health', authenticateToken, getUserEstablishment, async (req, 
 
     // Log activity
     await runExecute(
-      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [
         establishmentId, userId, 'health_record_added',
         `Health record added for animal: ${animal.senasa_caravan || animal.internal_caravan}`,
@@ -525,7 +534,7 @@ router.post('/:id/reproduction', authenticateToken, getUserEstablishment, async 
 
     // Check if animal exists and belongs to user's establishment
     const animal = await runSingle(
-      'SELECT * FROM animals WHERE id = ? AND establishment_id = ? AND is_active = 1',
+      'SELECT * FROM animals WHERE id = $1 AND establishment_id = $2 AND is_active = TRUE',
       [id, establishmentId]
     );
 
@@ -536,12 +545,12 @@ router.post('/:id/reproduction', authenticateToken, getUserEstablishment, async 
     // Add reproduction record
     const result = await runExecute(
       `INSERT INTO animal_reproduction_records (animal_id, record_date, record_type, bull_id, expected_birth_date, actual_birth_date, calf_sex, calf_weight, notes, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
       [id, record_date, record_type, bull_id, expected_birth_date, actual_birth_date, calf_sex, calf_weight, notes, userId]
     );
 
     const record = {
-      id: result.id,
+      id: result.rows[0]?.id,
       animal_id: parseInt(id),
       record_date,
       record_type,
@@ -556,7 +565,7 @@ router.post('/:id/reproduction', authenticateToken, getUserEstablishment, async 
 
     // Log activity
     await runExecute(
-      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [
         establishmentId, userId, 'reproduction_record_added',
         `Reproduction record added for animal: ${animal.senasa_caravan || animal.internal_caravan}`,
@@ -585,7 +594,7 @@ router.post('/:id/alerts', authenticateToken, getUserEstablishment, async (req, 
 
     // Check if animal exists and belongs to user's establishment
     const animal = await runSingle(
-      'SELECT * FROM animals WHERE id = ? AND establishment_id = ? AND is_active = 1',
+      'SELECT * FROM animals WHERE id = $1 AND establishment_id = $2 AND is_active = TRUE',
       [id, establishmentId]
     );
 
@@ -596,24 +605,24 @@ router.post('/:id/alerts', authenticateToken, getUserEstablishment, async (req, 
     // Add alert
     const result = await runExecute(
       `INSERT INTO animal_alerts (animal_id, alert_type, title, description, alert_date, created_by)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
       [id, alert_type, title, description, alert_date, userId]
     );
 
     const alert = {
-      id: result.id,
+      id: result.rows[0]?.id,
       animal_id: parseInt(id),
       alert_type,
       title,
       description,
       alert_date,
-      is_active: 1,
+      is_active: true,
       created_by: userId
     };
 
     // Log activity
     await runExecute(
-      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO activity_log (establishment_id, user_id, activity_type, description, entity_type, entity_id, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [
         establishmentId, userId, 'alert_added',
         `Alert added for animal: ${animal.senasa_caravan || animal.internal_caravan}`,
@@ -644,7 +653,7 @@ router.put('/alerts/:alertId/resolve', authenticateToken, getUserEstablishment, 
       `SELECT aa.*, a.establishment_id 
        FROM animal_alerts aa 
        JOIN animals a ON aa.animal_id = a.id 
-       WHERE aa.id = ? AND a.establishment_id = ?`,
+       WHERE aa.id = $1 AND a.establishment_id = $2`,
       [alertId, establishmentId]
     );
 
@@ -654,7 +663,7 @@ router.put('/alerts/:alertId/resolve', authenticateToken, getUserEstablishment, 
 
     // Resolve alert
     await runExecute(
-      'UPDATE animal_alerts SET is_active = 0, resolved_date = CURRENT_DATE, resolved_by = ? WHERE id = ?',
+      'UPDATE animal_alerts SET is_active = FALSE, resolved_date = CURRENT_DATE, resolved_by = $1 WHERE id = $2',
       [userId, alertId]
     );
 

@@ -37,7 +37,7 @@ router.post('/register', async (req, res) => {
     }
 
     // Check if user already exists
-    const existingUser = await runSingle('SELECT id FROM users WHERE email = ?', [email]);
+    const existingUser = await runSingle('SELECT id FROM users WHERE email = $1', [email]);
     if (existingUser) {
       return res.status(409).json({ error: 'User with this email already exists' });
     }
@@ -48,12 +48,12 @@ router.post('/register', async (req, res) => {
 
     // Create user
     const result = await runExecute(
-      'INSERT INTO users (email, password_hash, first_name, last_name, phone, role) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO users (email, password_hash, first_name, last_name, phone, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
       [email, passwordHash, firstName, lastName, phone, role]
     );
 
     const user = {
-      id: result.id,
+      id: result.rows[0]?.id,
       email,
       first_name: firstName,
       last_name: lastName,
@@ -64,8 +64,8 @@ router.post('/register', async (req, res) => {
     // If user is admin, create administrator record
     if (role === 'admin' || role === 'super_admin') {
       await runExecute(
-        'INSERT INTO administrators (user_id, admin_level, can_manage_users, can_manage_establishments) VALUES (?, ?, ?, ?)',
-        [result.id, role, 1, 1]
+        'INSERT INTO administrators (user_id, admin_level, can_manage_users, can_manage_establishments) VALUES ($1, $2, $3, $4)',
+        [user.id, role, true, true]
       );
     }
 
@@ -99,7 +99,7 @@ router.post('/login', async (req, res) => {
 
     // Find user by email
     const user = await runSingle(
-      'SELECT id, email, password_hash, first_name, last_name, role, is_active FROM users WHERE email = ?',
+      'SELECT id, email, password_hash, first_name, last_name, role, is_active FROM users WHERE email = $1',
       [email]
     );
 
@@ -153,7 +153,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
 
     const user = await runSingle(
-      'SELECT id, email, first_name, last_name, phone, role, is_active, created_at FROM users WHERE id = ?',
+      'SELECT id, email, first_name, last_name, phone, role, is_active, created_at FROM users WHERE id = $1',
       [userId]
     );
 
@@ -188,13 +188,13 @@ router.put('/profile', authenticateToken, async (req, res) => {
 
     // Update user
     await runExecute(
-      'UPDATE users SET first_name = ?, last_name = ?, phone = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE users SET first_name = $1, last_name = $2, phone = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4',
       [firstName, lastName, phone, userId]
     );
 
     // Get updated user
     const user = await runSingle(
-      'SELECT id, email, first_name, last_name, phone, role, is_active, created_at FROM users WHERE id = ?',
+      'SELECT id, email, first_name, last_name, phone, role, is_active, created_at FROM users WHERE id = $1',
       [userId]
     );
 
@@ -230,7 +230,7 @@ router.put('/change-password', authenticateToken, async (req, res) => {
     }
 
     // Get current password hash
-    const user = await runSingle('SELECT password_hash FROM users WHERE id = ?', [userId]);
+    const user = await runSingle('SELECT password_hash FROM users WHERE id = $1', [userId]);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -247,7 +247,7 @@ router.put('/change-password', authenticateToken, async (req, res) => {
 
     // Update password
     await runExecute(
-      'UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
       [newPasswordHash, userId]
     );
 

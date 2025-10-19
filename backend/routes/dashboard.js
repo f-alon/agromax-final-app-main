@@ -14,7 +14,7 @@ const getUserEstablishment = async (req, res, next) => {
       `SELECT ue.establishment_id, e.name as establishment_name 
        FROM user_establishments ue 
        JOIN establishments e ON ue.establishment_id = e.id 
-       WHERE ue.user_id = ? AND ue.is_active = 1`,
+       WHERE ue.user_id = $1 AND ue.is_active = TRUE`,
       [userId]
     );
     
@@ -39,18 +39,18 @@ router.get('/stats', authenticateToken, getUserEstablishment, async (req, res) =
     // Get basic counts
     const stats = await runSingle(`
       SELECT 
-        (SELECT COUNT(*) FROM animals WHERE establishment_id = ? AND is_active = 1) as total_animals,
-        (SELECT COUNT(*) FROM rodeos WHERE establishment_id = ? AND is_active = 1) as total_rodeos,
+        (SELECT COUNT(*) FROM animals WHERE establishment_id = $1 AND is_active = TRUE) as total_animals,
+        (SELECT COUNT(*) FROM rodeos WHERE establishment_id = $1 AND is_active = TRUE) as total_rodeos,
         (SELECT COUNT(*) FROM animal_alerts aa 
          JOIN animals a ON aa.animal_id = a.id 
-         WHERE a.establishment_id = ? AND aa.is_active = 1) as total_alerts,
+         WHERE a.establishment_id = $1 AND aa.is_active = TRUE) as total_alerts,
         (SELECT COUNT(*) FROM animal_alerts aa 
          JOIN animals a ON aa.animal_id = a.id 
-         WHERE a.establishment_id = ? AND aa.is_active = 1 AND aa.alert_type = 'pregnancy') as pregnancy_alerts,
+         WHERE a.establishment_id = $1 AND aa.is_active = TRUE AND aa.alert_type = 'pregnancy') as pregnancy_alerts,
         (SELECT COUNT(*) FROM animal_alerts aa 
          JOIN animals a ON aa.animal_id = a.id 
-         WHERE a.establishment_id = ? AND aa.is_active = 1 AND aa.alert_type = 'antibiotics') as antibiotics_alerts
-    `, [establishmentId, establishmentId, establishmentId, establishmentId, establishmentId]);
+         WHERE a.establishment_id = $1 AND aa.is_active = TRUE AND aa.alert_type = 'antibiotics') as antibiotics_alerts
+    `, [establishmentId]);
 
     // Get production statistics for the last 30 days
     const productionData = await runQuery(`
@@ -62,8 +62,8 @@ router.get('/stats', authenticateToken, getUserEstablishment, async (req, res) =
         AVG(apr.quality_rating) as avg_quality
       FROM animal_production_records apr
       JOIN animals a ON apr.animal_id = a.id
-      WHERE a.establishment_id = ? 
-        AND apr.record_date >= date('now', '-30 days')
+      WHERE a.establishment_id = $1 
+        AND apr.record_date >= CURRENT_DATE - INTERVAL '30 days'
       GROUP BY DATE(apr.record_date)
       ORDER BY DATE(apr.record_date) DESC
       LIMIT 30
@@ -79,7 +79,7 @@ router.get('/stats', authenticateToken, getUserEstablishment, async (req, res) =
         u.last_name
       FROM activity_log al
       LEFT JOIN users u ON al.user_id = u.id
-      WHERE al.establishment_id = ?
+      WHERE al.establishment_id = $1
       ORDER BY al.created_at DESC
       LIMIT 20
     `, [establishmentId]);
@@ -92,10 +92,10 @@ router.get('/stats', authenticateToken, getUserEstablishment, async (req, res) =
         COUNT(a.id) as animal_count,
         (SELECT COUNT(*) FROM animal_alerts aa 
          JOIN animals a2 ON aa.animal_id = a2.id 
-         WHERE a2.current_rodeo_id = r.id AND aa.is_active = 1) as alerts_count
+         WHERE a2.current_rodeo_id = r.id AND aa.is_active = TRUE) as alerts_count
       FROM rodeos r
-      LEFT JOIN animals a ON r.id = a.current_rodeo_id AND a.is_active = 1
-      WHERE r.establishment_id = ? AND r.is_active = 1
+      LEFT JOIN animals a ON r.id = a.current_rodeo_id AND a.is_active = TRUE
+      WHERE r.establishment_id = $1 AND r.is_active = TRUE
       GROUP BY r.id, r.name
       ORDER BY r.name
     `, [establishmentId]);
@@ -165,9 +165,9 @@ router.get('/alerts', authenticateToken, getUserEstablishment, async (req, res) 
       JOIN animals a ON aa.animal_id = a.id
       LEFT JOIN rodeos r ON a.current_rodeo_id = r.id
       LEFT JOIN users u ON aa.created_by = u.id
-      WHERE a.establishment_id = ? AND aa.is_active = 1
+      WHERE a.establishment_id = $1 AND aa.is_active = TRUE
       ORDER BY aa.alert_date DESC, aa.created_at DESC
-      LIMIT ?
+      LIMIT $2
     `, [establishmentId, parseInt(limit)]);
 
     res.json({
@@ -204,6 +204,8 @@ router.get('/search', authenticateToken, getUserEstablishment, async (req, res) 
       return res.json({ animals: [] });
     }
 
+    const searchTerm = `%${q}%`;
+
     const animals = await runQuery(`
       SELECT 
         a.id,
@@ -211,27 +213,27 @@ router.get('/search', authenticateToken, getUserEstablishment, async (req, res) 
         a.internal_caravan,
         a.name,
         r.name as rodeo_name,
-        (SELECT COUNT(*) FROM animal_alerts aa WHERE aa.animal_id = a.id AND aa.is_active = 1) as active_alerts
+        (SELECT COUNT(*) FROM animal_alerts aa WHERE aa.animal_id = a.id AND aa.is_active = TRUE) as active_alerts
       FROM animals a
       LEFT JOIN rodeos r ON a.current_rodeo_id = r.id
-      WHERE a.establishment_id = ? 
-        AND a.is_active = 1
+      WHERE a.establishment_id = $1 
+        AND a.is_active = TRUE
         AND (
-          a.senasa_caravan LIKE ? OR 
-          a.internal_caravan LIKE ? OR 
-          a.name LIKE ?
+          a.senasa_caravan ILIKE $2 OR 
+          a.internal_caravan ILIKE $3 OR 
+          a.name ILIKE $4
         )
       ORDER BY 
         CASE 
-          WHEN a.senasa_caravan LIKE ? THEN 1
-          WHEN a.internal_caravan LIKE ? THEN 2
+          WHEN a.senasa_caravan ILIKE $2 THEN 1
+          WHEN a.internal_caravan ILIKE $3 THEN 2
           ELSE 3
         END,
         a.senasa_caravan,
         a.internal_caravan,
         a.name
       LIMIT 10
-    `, [establishmentId, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`]);
+    `, [establishmentId, searchTerm, searchTerm, searchTerm]);
 
     res.json({
       animals: animals.map(row => ({
@@ -255,6 +257,7 @@ router.get('/production-summary', authenticateToken, getUserEstablishment, async
   try {
     const { days = 30 } = req.query;
     const establishmentId = req.establishmentId;
+    const periodDays = Math.max(1, parseInt(days, 10));
 
     const productionData = await runQuery(`
       SELECT 
@@ -266,11 +269,11 @@ router.get('/production-summary', authenticateToken, getUserEstablishment, async
         COUNT(*) as total_records
       FROM animal_production_records apr
       JOIN animals a ON apr.animal_id = a.id
-      WHERE a.establishment_id = ? 
-        AND apr.record_date >= date('now', '-${parseInt(days)} days')
+      WHERE a.establishment_id = $1 
+        AND apr.record_date >= CURRENT_DATE - ($2::INT * INTERVAL '1 day')
       GROUP BY DATE(apr.record_date)
       ORDER BY DATE(apr.record_date) ASC
-    `, [establishmentId]);
+    `, [establishmentId, periodDays]);
 
     // Calculate totals and averages
     const totals = productionData.reduce((acc, row) => {
@@ -288,7 +291,7 @@ router.get('/production-summary', authenticateToken, getUserEstablishment, async
         totalRecords: totals.totalRecords,
         avgDailyLiters: avgDailyLiters,
         daysWithData: totals.daysWithData,
-        period: parseInt(days)
+        period: periodDays
       },
       daily: productionData.map(row => ({
         date: row.date,
