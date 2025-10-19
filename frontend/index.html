@@ -11,14 +11,25 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" href="agromax_logo.png" type="image/png">
 </head>
 <body class="loading-page">
 
-        <div class="loading-container">
-            <div class="spinner"></div>
-            <h1 class="text-xl font-semibold text-gray-800">Cargando AgroMax-DEMO...</h1> <!-- Nombre actualizado aquí -->
-            <p class="mt-2 text-sm">Será redirigido automáticamente.</p>
-        </div>
+    <div class="loading-container">
+        <header class="loading-header">
+            <div class="loading-logo-bounce">
+                <img src="agromax_logo.png" alt="Logo AgroMax" class="loading-logo-image">
+            </div>
+            <h1 class="text-xl font-semibold text-green-100">Cargando AgroMax-DEMO...</h1> <!-- Nombre actualizado aquí -->
+        </header>
+        <div class="spinner"></div>
+        <p class="mt-4 text-sm text-green-100">Será redirigido automáticamente.</p>
+    </div>
+
+    <footer class="loading-footer">
+        <img src="agromax_logo.png" alt="Isotipo AgroMax" class="loading-footer__logo">
+        <span class="loading-footer__label">AgroMax</span>
+    </footer>
 
     <script src="js/config.js"></script>
     <script src="js/common.js"></script>

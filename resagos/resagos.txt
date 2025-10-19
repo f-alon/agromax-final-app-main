@@ -10,7 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="icon" href="agromax_logo.png" type="image/png">
     <!-- Flag icons removed for CSP compliance -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 </head>
@@ -80,6 +79,43 @@
     <script src="js/config.js"></script>
     <script src="js/common.js"></script>
     <script src="assets/login.js"></script>
+
+</body>
+</html>
+
+
+
+
+
+index.html
+
+
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroMax-DEMO - Inicio</title> <!-- Nombre actualizado aquí -->
+    <!-- Tailwind CDN removido por CSP -->
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+    <link rel="stylesheet" href="assets/tailwind.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="loading-page">
+
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <h1 class="text-xl font-semibold text-gray-800">Cargando AgroMax-DEMO...</h1> <!-- Nombre actualizado aquí -->
+            <p class="mt-2 text-sm">Será redirigido automáticamente.</p>
+        </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/index.js"></script>
 
 </body>
 </html>
