@@ -3,6 +3,8 @@
 // Expects a JSON response: { token, user: { id, email, firstName, lastName, role } }
 
 (function () {
+  const API_URL = 'https://agromax-final-app-main.onrender.com';
+
   function qs(selector) {
     return document.querySelector(selector);
   }
@@ -35,11 +37,7 @@
     }
 
     try {
-      const base = (window.API_BASE_URL || '').toString();
-      const loginUrl = base
-        ? (base.endsWith('/') ? `${base}api/auth/login` : `${base}/api/auth/login`)
-        : '/api/auth/login';
-
+      const loginUrl = `${API_URL}/api/auth/login`;
       const res = await fetch(loginUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,4 +91,3 @@
     if (form) form.addEventListener('submit', login);
   });
 })();
-
