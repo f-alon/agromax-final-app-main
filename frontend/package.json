@@ -2,13 +2,15 @@
     "name": "agromax-frontend",
     "private": true,
     "scripts": {
-      "tw:build": "tailwindcss -i ./src/input.css -o ./assets/tailwind.css --watch",
-      "tw:build:once": "tailwindcss -i ./src/input.css -o ./assets/tailwind.css"
+      "tw:build": "postcss ./src/input.css -o ./assets/tailwind.css --watch",
+      "tw:build:once": "postcss ./src/input.css -o ./assets/tailwind.css",
+      "tw:build:prod": "postcss ./src/input.css -o ./assets/tailwind.css --env production"
     },
     "devDependencies": {
       "@tailwindcss/cli": "^4.1.0",
       "tailwindcss": "^4.1.0",
       "postcss": "^8.4.47",
+      "postcss-cli": "^11.0.0",
       "autoprefixer": "^10.4.20"
     }
   }

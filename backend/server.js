@@ -58,51 +58,47 @@ const FRONTEND_DIR = path.join(__dirname, "../frontend");
 // ===== Middlewares base =====
 app.use(morgan("dev"));
 app.use(express.json());
-app.use(cors()); // si todo vive en el mismo origen, igual no molesta
 
 // ===== Seguridad (Helmet + CSP) =====
-// IMPORTANTE: con esta CSP, NO se permiten <script> inline ni CDNs de JS.
-// Tus <script> deben estar en archivos locales (p. ej. /assets/login.js).
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      useDefaults: true,
-      directives: {
-        // por defecto, todo al mismo origen
-        defaultSrc: ["'self'"],
+const isProd = process.env.NODE_ENV === "production";
 
-        // scripts solo locales (sin inline, sin eval)
-        scriptSrc: ["'self'"],
+const CONNECT_SRC = [
+  "'self'",
+  "https://agromax-final-app-main.onrender.com",
+  ...(!isProd ? [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
+  ] : [])
+];
 
-        // estilos locales; si más adelante necesitás inline CSS,
-        // podés sumar "'unsafe-inline'" aquí, pero evita usarlo.
-        styleSrc: ["'self'", "https://fonts.googleapis.com"],
+const API_ALLOWED_ORIGINS = [
+  "https://agromax-final-app-main.onrender.com",
+  ...(!isProd ? [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
+  ] : [])
+];
 
-        // fuentes e imágenes locales; data: permite íconos embebidos/base64
-        fontSrc: ["'self'", "data:","https://fonts.gstatic.com"],
-        imgSrc: ["'self'", "data:", "blob:"],
-
-        // llamadas XHR/fetch al mismo origen (tu API corre acá mismo)
-        connectSrc: ["'self'"],
-
-        // deshabilitar plugins/objetos
-        objectSrc: ["'none'"],
-
-        // evita que sitios externos te embeban en iframes
-        frameAncestors: ["'self'"],
-
-        // restringe <base>
-        baseUri: ["'self'"],
-      },
-    },
-
-    // otras protecciones útiles
-    referrerPolicy: { policy: "no-referrer" },
-    crossOriginEmbedderPolicy: false, // para evitar bloqueos innecesarios en dev
-    crossOriginOpenerPolicy: { policy: "same-origin" },
-    crossOriginResourcePolicy: { policy: "same-origin" },
-  })
-);
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      "default-src": ["'self'"],
+      "script-src": ["'self'", "'unsafe-inline'"],
+      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      "font-src": ["'self'", "data:", "https://fonts.gstatic.com"],
+      "img-src": ["'self'", "data:", "blob:"],
+      "connect-src": CONNECT_SRC,
+      "object-src": ["'none'"],
+      "frame-ancestors": ["'self'"],
+      "base-uri": ["'self'"]
+    }
+  }
+}));
 
 // ===== Servir frontend estático =====
 // Cache: HTML sin caché; assets con cache-control corto (1 hora) para dev.
@@ -126,6 +122,17 @@ app.use(
 
 // Servir assets del backend (scripts compartidos, etc.) bajo /assets
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
+// ===== CORS =====
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || API_ALLOWED_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true
+}));
 
 // ===== API de ejemplo =====
 app.get("/api/health", (req, res) => {
