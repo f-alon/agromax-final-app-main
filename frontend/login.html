@@ -2,83 +2,63 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgroMax - Iniciar Sesión</title> <!-- Nombre actualizado aquí -->
-    <!-- Tailwind local (CSP compliant) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AgroMax - Iniciar sesi&oacute;n</title>
     <link rel="stylesheet" href="assets/tailwind.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" href="agromax_logo.png" type="image/png">
-    <!-- Flag icons removed for CSP compliance -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 </head>
-<body class="bg-gray-50">
+<body class="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 space-y-6">
+        <header class="text-center space-y-1">
+            <h1 class="text-2xl font-bold text-gray-900">AgroMax</h1>
+            <p class="text-xs tracking-widest text-gray-500">LOG&Iacute;STICA AGROPECUARIA</p>
+        </header>
 
-    <div class="min-h-screen flex flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-md w-full space-y-8">
+        <h2 class="text-center text-lg font-semibold text-gray-900">Inicia sesi&oacute;n en tu cuenta</h2>
+
+        <form id="loginForm" class="space-y-4">
             <div>
-                <h1 class="text-center text-4xl font-extrabold text-gray-900">
-                    <span class="text-green-700">Agro</span>Max <!-- Nombre actualizado aquí -->
-                </h1>
-                <p class="text-center text-md font-medium text-gray-500 tracking-wider">LOGÍSTICA AGROPECUARIA</p>
-                <h2 class="mt-8 text-center text-2xl font-bold text-gray-900">
-                    Inicia sesión en tu cuenta
-                </h2>
-                <p class="mt-2 text-center text-sm text-gray-600">
-                    o
-                    <!-- Este enlace ahora llevará a la página de registro -->
-                    <a href="#" data-navigate="register.html" class="font-medium text-green-600 hover:text-green-500">
-                        crea una cuenta nueva
-                    </a>
-                </p>
+                <label for="email-address" class="block text-sm font-medium text-gray-700 mb-1">Correo electr&oacute;nico</label>
+                <input id="email-address" name="email" type="email" autocomplete="email" required
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring focus:border-green-500"
+                    placeholder="correo@agromax.com">
             </div>
-            <form id="loginForm" class="mt-8 space-y-6">
-                <div class="rounded-md shadow-sm -space-y-px">
-                    <div>
-                        <label for="email-address" class="sr-only">Correo electrónico</label>
-                        <input id="email-address" name="email" type="email" autocomplete="email" required
-                            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                            placeholder="Correo electrónico">
-                    </div>
-                    <div>
-                        <label for="password" class="sr-only">Contraseña</label>
-                        <input id="password" name="password" type="password" autocomplete="current-password" required
-                            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                            placeholder="Contraseña">
-                    </div>
-                </div>
 
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        <input id="remember-me" name="remember-me" type="checkbox"
-                            class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
-                        <label for="remember-me" class="ml-2 block text-sm text-gray-900">
-                            Recordarme
-                        </label>
-                    </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Contrase&ntilde;a</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" required
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring focus:border-green-500"
+                    placeholder="********">
+            </div>
 
-                    <div class="text-sm">
-                        <a href="#" class="font-medium text-green-600 hover:text-green-500">
-                            ¿Olvidaste tu contraseña?
-                        </a>
-                    </div>
-                </div>
+            <div class="flex items-center justify-between text-sm">
+                <label class="inline-flex items-center gap-2 text-gray-700">
+                    <input id="remember-me" name="remember-me" type="checkbox"
+                        class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+                    Recordarme
+                </label>
+                <a href="#" class="text-green-600 hover:text-green-500">&iquest;Olvidaste tu contrase&ntilde;a?</a>
+            </div>
 
-                <div>
-                    <button id="loginButton" type="submit"
-                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                        Iniciar Sesión
-                    </button>
-                </div>
-            </form>
-            <div id="message" class="text-center text-sm"></div>
-        </div>
+            <button id="loginButton" type="submit"
+                class="w-full rounded-lg bg-green-600 py-2 text-white font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition">
+                Iniciar sesi&oacute;n
+            </button>
+        </form>
+
+        <p class="text-center text-sm text-gray-600">
+            o <a href="#" data-navigate="register.html" class="text-green-600 hover:text-green-500">crea una cuenta nueva</a>
+        </p>
+
+        <div id="message" class="text-center text-sm"></div>
     </div>
 
     <script src="js/config.js"></script>
     <script src="js/common.js"></script>
     <script src="assets/login.js"></script>
-
 </body>
 </html>
