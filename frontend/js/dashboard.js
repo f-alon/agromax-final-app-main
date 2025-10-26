@@ -5,12 +5,7 @@ let searchTimeout = null;
 // Load dashboard statistics
 async function loadDashboardStats() {
     try {
-        const token = getAuthToken();
-        const headers = {};
-        if (token) {
-            headers.Authorization = `Bearer ${token}`;
-        }
-        const data = await fetchJSON(`/api/dashboard/stats`, { headers });
+        const data = await fetchJSON(`/api/dashboard/stats`);
         dashboardData = data;
         
         // Update establishment info

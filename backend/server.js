@@ -54,6 +54,10 @@ const app = express();
 // ===== Config =====
 const PORT = process.env.PORT || 3000;
 const FRONTEND_DIR = path.join(__dirname, "../frontend");
+const isApiRequest = (req = {}) => {
+  const target = req.originalUrl || req.path || "";
+  return typeof target === "string" && target.startsWith("/api/");
+};
 
 // ===== Middlewares base =====
 app.use(morgan("dev"));
@@ -154,7 +158,7 @@ app.use("/api/dashboard", require("./routes/dashboard"));
 // Si pedís una ruta que no es API y no existe archivo físico,
 // devolvemos index.html (útil si tenés una SPA o deep-links).
 app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/api/")) return next();
+  if (isApiRequest(req)) return next();
 
   // intenta servir un archivo existente; si no existe, cae a index.html
   res.sendFile(path.join(FRONTEND_DIR, "index.html"), (err) => {
@@ -170,11 +174,10 @@ app.use("/api", (req, res) => {
 // ===== Error handler =====
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
-  if (req.path.startsWith("/api/")) {
-    res.status(500).json({ error: "Internal Server Error" });
-  } else {
-    res.status(500).send("Error interno del servidor");
+  if (isApiRequest(req)) {
+    return res.status(500).json({ error: "Internal Server Error" });
   }
+  res.status(500).send("Error interno del servidor");
 });
 
 // ===== Start =====

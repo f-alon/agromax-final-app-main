@@ -49,17 +49,17 @@ async function fetchJSON(url, options = {}) {
     const base = API_BASE_URL || '';
     const isAbsolute = /^https?:\/\//i.test(url);
     const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
-    const normalizedPath = url.startsWith('/') ? url : `/${url}`;
-    const requestUrl = isAbsolute ? url : `${normalizedBase}${normalizedPath}`;
+    const normalizedPath = url.startsWith('/') ? url : '/' + url;
+    const requestUrl = isAbsolute ? url : normalizedBase + normalizedPath;
 
     const headers = {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         ...(options.headers || {})
     };
 
     const token = getAuthToken();
     if (token && !headers.Authorization) {
-        headers.Authorization = `Bearer ${token}`;
+        headers.Authorization = 'Bearer ' + token;
     }
 
     const response = await fetch(requestUrl, {
@@ -72,53 +72,32 @@ async function fetchJSON(url, options = {}) {
     const bodyText = await response.text();
 
     if (!response.ok) {
-        throw new Error(`HTTP ${response.status} ${response.statusText} — ${bodyText.slice(0, 300)}`);
+        throw new Error('HTTP ' + response.status + ' ' + response.statusText + ' -- ' + bodyText.slice(0, 300));
     }
 
     if (!contentType.includes('application/json')) {
-        throw new Error(`Expected JSON, got ${contentType} — ${bodyText.slice(0, 300)}`);
+        throw new Error('Expected JSON, got ' + contentType + ' -- ' + bodyText.slice(0, 300));
     }
 
     try {
         return JSON.parse(bodyText);
     } catch (error) {
-        throw new Error(`Invalid JSON: ${error.message} — ${bodyText.slice(0, 300)}`);
+        throw new Error('Invalid JSON: ' + error.message + ' -- ' + bodyText.slice(0, 300));
     }
 }
 
 async function fetchData(endpoint, options = {}) {
     try {
-        // Wake up remote server if a full base URL is defined
-        if (API_BASE_URL && /^https?:\/\//i.test(API_BASE_URL)) {
-            try { await fetch(API_BASE_URL, { method: 'GET' }); } catch (_) {}
-        }
-        
-        const token = getAuthToken();
-        const base = API_BASE_URL || '';
-        const response = await fetch(`${base}${endpoint}`, {
-            ...options,
-            headers: { 
-                'Authorization': `Bearer ${token}`, 
-                'Content-Type': 'application/json', 
-                ...options.headers 
-            }
-        });
-        
-        if (!response.ok) {
-            let errorData = null;
-            try { errorData = await response.json(); } catch (_) {}
-            const err = new Error((errorData && (errorData.error || errorData.message)) || `Error: ${response.statusText}`);
-            err.status = response.status;
-            throw err;
-        }
-        
-        return await response.json();
+        const headers = {
+            'Content-Type': 'application/json',
+            ...(options.headers || {})
+        };
+        return await fetchJSON(endpoint, { ...options, headers });
     } catch (error) {
-        console.error(`Error loading data from ${endpoint}:`, error);
+        console.error('Error loading data from ' + endpoint + ':', error);
         throw error;
     }
 }
-
 // Navigation helper function
 function navigateTo(url) {
     try {
@@ -154,3 +133,4 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
