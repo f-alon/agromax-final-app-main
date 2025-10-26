@@ -45,6 +45,47 @@ function logout() {
     }
 }
 
+async function fetchJSON(url, options = {}) {
+    const base = API_BASE_URL || '';
+    const isAbsolute = /^https?:\/\//i.test(url);
+    const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
+    const normalizedPath = url.startsWith('/') ? url : `/${url}`;
+    const requestUrl = isAbsolute ? url : `${normalizedBase}${normalizedPath}`;
+
+    const headers = {
+        'Accept': 'application/json',
+        ...(options.headers || {})
+    };
+
+    const token = getAuthToken();
+    if (token && !headers.Authorization) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(requestUrl, {
+        credentials: 'include',
+        ...options,
+        headers
+    });
+
+    const contentType = response.headers.get('content-type') || '';
+    const bodyText = await response.text();
+
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText} — ${bodyText.slice(0, 300)}`);
+    }
+
+    if (!contentType.includes('application/json')) {
+        throw new Error(`Expected JSON, got ${contentType} — ${bodyText.slice(0, 300)}`);
+    }
+
+    try {
+        return JSON.parse(bodyText);
+    } catch (error) {
+        throw new Error(`Invalid JSON: ${error.message} — ${bodyText.slice(0, 300)}`);
+    }
+}
+
 async function fetchData(endpoint, options = {}) {
     try {
         // Wake up remote server if a full base URL is defined

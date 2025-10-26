@@ -5,7 +5,13 @@ let searchTimeout = null;
 // Load dashboard statistics
 async function loadDashboardStats() {
     try {
-        const data = await fetchData(`/api/dashboard/stats`);
+        const token = getAuthToken();
+        const headers = {};
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+        const data = await fetchJSON(`/api/dashboard/stats`, { headers });
+        dashboardData = data;
         
         // Update establishment info
         document.getElementById('dashboardTitle').textContent = 'Dashboard';
